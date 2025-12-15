@@ -11,51 +11,95 @@ import AlreadyHaveAccount from '@/component/shared/auth/AlreadyHaveAccount';
 import { useBookingStore } from '@/store/bookingStore';
 import { colors } from '@/theme/colors';
 import { typography } from '@/theme/typography';
+import ActiveBooker from '@/component/shared/activeBooker';
 
 const SetBookingDetails = () => {
   const {
     bookingType,
     singleServices,
     bookers,
+    activeBookerId,
     totalPriceSingle,
     totalDurationSingle,
     setSingleDateTime,
+    setActiveBookerDateTime,
     singleDate,
     singleTime,
+    totalPriceBooker,
+    totalDurationBooker
   } = useBookingStore();
 
-  const [selectedDate, setSelectedDate] = useState<Date | null>(singleDate ? new Date(singleDate) : null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(singleTime || null);
+  const booker = bookers?.find((b) => b.id === activeBookerId)
+
+  const currentDate =
+  bookingType === 'single'
+    ? singleDate
+    : booker?.date;
+
+const currentTime =
+  bookingType === 'single'
+    ? singleTime
+    : booker?.time;
+
+
+  const [selectedDate, setSelectedDate] = useState<Date | null>(
+    currentDate ? new Date(currentDate) : null
+  );
+  const [selectedTime, setSelectedTime] = useState<string | null>(
+    currentTime || null
+  );
+
+  const cart = bookingType === 'single' ? singleServices : booker?.services
+
+  const total = bookingType === 'single' ? totalPriceSingle() : totalPriceBooker(activeBookerId)
+  const duration = bookingType === 'single' ? totalDurationSingle() : totalDurationBooker(activeBookerId)
 
   const { vendor } = useLocalSearchParams();
   const vendorObj = JSON.parse(vendor);
 
-  // Cart items based on booking type
-  const cart = bookingType === 'single' ? singleServices : bookers.flatMap(b => b.services);
 
   const noSlots = selectedDate?.getDay() === 0; // Sundays closed
 
   // Sync local state with store
   useEffect(() => {
-    if (singleDate) setSelectedDate(new Date(singleDate));
-    if (singleTime) setSelectedTime(singleTime);
-  }, [singleDate, singleTime]);
+    if (currentDate) {
+      setSelectedDate(new Date(currentDate));
+    } else {
+      setSelectedDate(null);
+    }
+
+    if (currentTime) {
+      setSelectedTime(currentTime);
+    } else {
+      setSelectedTime(null);
+    }
+  }, [currentDate, currentTime, activeBookerId]);
+
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setSelectedTime(null);
 
-    // Update store
-    setSingleDateTime(date.toISOString(), null);
-  };
-
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
-
-    if (selectedDate) {
-      setSingleDateTime(selectedDate.toISOString(), time);
+    if (bookingType === 'single') {
+      setSingleDateTime(date.toISOString(), null);
+    } else {
+      setActiveBookerDateTime(date.toISOString(), null);
     }
   };
+
+
+  const handleTimeSelect = (time: string) => {
+    if (!selectedDate) return;
+
+    setSelectedTime(time);
+
+    if (bookingType === 'single') {
+      setSingleDateTime(selectedDate.toISOString(), time);
+    } else {
+      setActiveBookerDateTime(selectedDate.toISOString(), time);
+    }
+  };
+
 
   return (
     <View style={styles.container}>
@@ -68,7 +112,7 @@ const SetBookingDetails = () => {
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
           {/* Header */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 20 }}>
+          {/* <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 20 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <View style={{ width: 40, height: 40, borderRadius: 50, backgroundColor: colors.gray200, justifyContent: 'center', alignItems: 'center' }}>
                 <Text style={typography.label}>MM</Text>
@@ -76,7 +120,14 @@ const SetBookingDetails = () => {
               <Text style={typography.body}>Any Professional</Text>
             </View>
             <IconButton><Calendar1 variant="Bulk" /></IconButton>
-          </View>
+          </View> */}
+          {
+            bookingType === 'group' && (
+              <View style={{marginBottom: 20}}>
+                <ActiveBooker vendorId={vendorObj?.id} />
+              </View>
+            )
+          }
 
           {/* Calendar */}
           <Calendar onSelectDate={handleDateSelect} selectedDate={selectedDate} />
@@ -122,11 +173,11 @@ const SetBookingDetails = () => {
         </ScrollView>
 
         {/* Cart Summary */}
-        {cart.length > 0 && (
+        {cart?.length! > 0 && (
           <CartSummary
-            totalPrice={totalPriceSingle()}
-            totalDuration={totalDurationSingle()}
-            totalItems={cart.length}
+            totalPrice={total}
+            totalDuration={duration}
+            totalItems={cart?.length!}
             disabled={selectedDate === null || selectedTime === null}
             onContinue={() => router.push({
               pathname: '/(others)/firstTimeVisit',

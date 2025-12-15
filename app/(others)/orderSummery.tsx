@@ -5,7 +5,9 @@ import {
 import React from "react";
 import {
   ScrollView,
-  StyleSheet
+  StyleSheet,
+  View,
+  Text
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -22,6 +24,8 @@ import { images } from "@/constant/images";
 import { colors } from "@/theme/colors";
 import { formatDurationCompact } from "@/utils/formarDuration";
 import { useBookingStore } from "@/store/bookingStore";
+import { vendors } from "@/constant/data";
+import { typography } from "@/theme/typography";
 
 type PaymentMethod = "now" | "venue";
 
@@ -42,19 +46,51 @@ const getEndTime = (startTime: string, durationMinutes: number) => {
 
 
 const OrderSummary = () => {
-  const {totalPriceSingle, totalDurationSingle, singleServices, bookers, singleDate, singleTime} = useBookingStore()
+  const {
+    totalPriceSingle, 
+    totalDurationSingle, 
+    singleServices, 
+    bookers, 
+    singleDate, 
+    singleTime,
+    activeBookerId,
+    totalDurationBooker,
+    totalPriceBooker,
+    bookingType,
+    totalPriceAllBookers,
+    totalDurationAllBookers
+  } = useBookingStore()
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("now");
-    const {vendor} = useLocalSearchParams();
-    const vendorObj = JSON.parse(vendor);
+  const { vendor } = useLocalSearchParams();
+  const vendorObj = JSON.parse(vendor);
+
+  const bookedVendors = vendors.filter((vendor) =>
+    bookers.some((booker) => booker.vendorId === vendor.id)
+  );
+
+  const booker = bookers?.find((b) => b.id === activeBookerId)
+
+  const cart = bookingType === 'single' ? singleServices : booker?.services
+
+    const currentDate =
+      bookingType === 'single'
+        ? singleDate
+        : booker?.date;
+
+    const currentTime =
+      bookingType === 'single'
+        ? singleTime
+        : booker?.time;
 
 
-  const cart = singleServices || bookers?.services
+  const total = bookingType === 'single' ? totalPriceSingle() : totalPriceAllBookers()
+  const duration = bookingType === 'single' ? totalDurationSingle() : totalDurationAllBookers()
 
   const bookingFee = vendorObj?.price
     ? Number(vendorObj.price.toString().replace(/[^0-9.-]+/g, ''))
     : 0;
 
-const grandTotal = totalPriceSingle() + bookingFee;
+const grandTotal = total + bookingFee;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -64,30 +100,103 @@ const grandTotal = totalPriceSingle() + bookingFee;
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <PageTitle title="Review and confirm" />
+        {
+          bookingType === 'single' ? (
+            <SalonInfoCard
+              image={vendorObj.image}
+              name={vendorObj?.name}
+              rating={vendorObj?.rating}
+              reviews={vendorObj?.reviews?.length}
+              address={vendorObj.location}
+            />
+          ) : (
+            <View>
+              {
+                bookedVendors.map((vendorObj, index) => (
+                  <SalonInfoCard
+                    key={index}
+                    image={vendorObj.image}
+                    name={vendorObj?.name}
+                    rating={vendorObj?.rating as any}
+                    reviews={vendorObj?.reviews?.length}
+                    address={vendorObj.location}
+                  />
+                ))
+              }
+            </View>
+          ) 
+        }
+        {
+          bookingType === 'single' ? (
+            <BookingDateTime
+              date={currentDate ? new Date(currentDate).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              }) : ''}
+              time={
+                singleTime
+                  ? `${currentTime} - ${getEndTime(currentTime, duration)} (${formatDurationCompact(duration)})`
+                  : ''
+              }
+            />
+          ) : (
+            <View>
+              {
+                bookers.map((bok, index) => (
+                  <View>
+                    <Text style={[typography.label,{marginTop: 10}]}>{bok?.name}</Text>
+                    <BookingDateTime
+                      key={index}
+                      date={bok?.date ? new Date(bok?.date).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      }) : ''}
+                      time={
+                        bok?.time
+                          ? `${bok?.time} - ${getEndTime(bok?.time, totalDurationBooker(bok.id))} (${formatDurationCompact(totalDurationBooker(bok.id))})`
+                          : ''
+                      }
+                    />
+                  </View>
+                ))
+              }
+            </View>
+          )
+        }
 
-        <SalonInfoCard
-          image={vendorObj.image}
-          name={vendorObj?.name}
-          rating={vendorObj?.rating}
-          reviews="3,440"
-          address={vendorObj.location}
-        />
-        <BookingDateTime
-          date={singleDate ? new Date(singleDate).toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-          }) : ''}
-          time={
-            singleTime
-              ? `${singleTime} - ${getEndTime(singleTime, totalDurationSingle())} (${formatDurationCompact(totalDurationSingle())})`
-              : ''
-          }
-        />
+          <View>
+               <Text style={typography.h3}>Services</Text>
+               <View>
+                {
+                  bookingType === 'single' ? (
+                    <OrderItemsList items={cart} />
+                  ) : (
+                    <View>
+                      {
+                        bookers.map((bok, index) => (
+                          <View>
+                            <OrderItemsList key={index} owner={bok?.name} items={bok?.services} />
+                            <View style={{flexDirection: "row", alignItems: 'center', justifyContent: 'space-between', marginTop: 10}}>
+                              <Text style={typography.label}>Booker's Total</Text>
+                              <Text style={typography.description}>NGN {totalPriceBooker(bok?.id).toLocaleString()}</Text>
+                            </View>
+                            <View style={{flexDirection: "row", alignItems: 'center', justifyContent: 'space-between', marginTop: 10}}>
+                              <Text style={typography.label}>Service Duration</Text>
+                              <Text style={typography.description}>{formatDurationCompact(totalDurationBooker(bok?.id))}</Text>
+                            </View>
+                          </View>
+                        ))
+                      }
+                    </View>
+                  )
+                }
+               </View>
+          </View>
 
-
-        <OrderItemsList items={cart} />
-        <PriceBreakdown total={totalPriceSingle()} bookingFee={bookingFee} />
+        
+        <PriceBreakdown total={total} bookingFee={bookingFee} />
 
         <PaymentMethodSelector
           value={paymentMethod}
@@ -98,12 +207,12 @@ const grandTotal = totalPriceSingle() + bookingFee;
         <CancellationPolicy />
       </ScrollView>
 
-      {cart.length > 0 && (
+      {cart?.length! > 0 && (
         <CartSummary
           totalPrice={grandTotal}
-          totalDuration={totalDurationSingle()}
-          totalItems={cart.length}
-          onContinue={() => router.push("/(others)/firstTimeVisit")}
+          totalDuration={duration}
+          totalItems={cart?.length!}
+          onContinue={() => {}}
         />
       )}
     </SafeAreaView>

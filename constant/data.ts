@@ -252,6 +252,10 @@ export const vendors = [
     about: "Jane's Hairpire offers premium hair styling services with a focus on quality and customer satisfaction.",
     image: images.ads1,
     categories: ["Spa", "Massage",],
+    latlog: {
+      lat: 6.5244, 
+      lng: 3.3792
+    }, 
     rating: 4.5,
     verified: true,
     imageUrl: images.ads1,
@@ -265,8 +269,107 @@ export const vendors = [
     openingTime: "09:00 AM",
     closingTime: "08:00 PM",
     team: [
-      { id: 1, name: "Jane Savage", role: "Stylist", image: images.hero2 },
-      { id: 2, name: "John Daniel", role: "Assistant", image: images.hero1 },
+      {
+        id: 1,
+        name: "Sarah Johnson",
+        role: "Senior Nail Artist",
+        image: images.ads2,
+
+        rating: 4.9,
+        yearsOfExperience: 6,
+
+        address: "Glow Nails Studio, Los Angeles, USA",
+
+        languages: ["English", "Spanish"],
+
+        appointmentsCompleted: 1240,
+        clientsServed: 980,
+
+        availability: {
+          status: "Available",
+          workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+          workingHours: {
+            start: "10:00 AM",
+            end: "07:00 PM",
+          },
+        },
+
+        specialties: [
+          "Gel Nail Art",
+          "French Manicure",
+          "Pedicure & Spa",
+        ],
+
+        reviews: [
+          {
+            id: 1,
+            user: "Catherine",
+            rating: 5,
+            comment: "Perfect nails! Sarah is very detailed and friendly.",
+            image: images.hero3,
+            date: "2025-12-05",
+          },
+          {
+            id: 2,
+            user: "Daniel",
+            rating: 4,
+            comment: "Great experience, clean work and calm environment.",
+            image: images.hero,
+            date: "2025-12-07",
+          },
+        ],
+      },
+
+      {
+        id: 2,
+        name: "Emma Williams",
+        role: "Nail Technician",
+        image: images.ads3,
+
+        rating: 4.6,
+        yearsOfExperience: 3,
+
+        address: "Glow Nails Studio, Los Angeles, USA",
+
+        languages: ["English"],
+
+        appointmentsCompleted: 620,
+        clientsServed: 540,
+
+        availability: {
+          status: "Busy",
+          workingDays: ["Mon", "Tue", "Thu", "Fri", "Sat"],
+          workingHours: {
+            start: "11:00 AM",
+            end: "06:00 PM",
+          },
+        },
+
+        specialties: [
+          "Classic Manicure",
+          "Nail Repair",
+          "Polish & Care",
+        ],
+
+        reviews: [
+          {
+            id: 1,
+            user: "Linda",
+            rating: 5,
+            comment: "Emma was gentle and very professional.",
+            image: images.ads1,
+            date: "2025-12-10",
+          },
+          {
+            id: 2,
+            user: "Mark",
+            rating: 4,
+            comment: "Good service, will book again.",
+            image: images.ads2,
+            date: "2025-12-12",
+          },
+        ],
+      },
     ],
     reviews: [
       { id: 1, user: "Alice", rating: 5, comment: "Amazing service!", image: images.ads1, date: "2025-12-01" },
@@ -319,6 +422,10 @@ export const vendors = [
     verified: true,
     imageUrl: images.ads3,
     vendorName: "Glow Nails Studio",
+    latlog: {
+      lat: 6.5144, 
+      lng: 3.3892
+    }, 
     location: "Los Angeles, USA",
     status: "Open",
     price: "500.89",

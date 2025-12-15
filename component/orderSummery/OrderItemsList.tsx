@@ -7,10 +7,10 @@ interface Item {
   price: number;
 }
 
-export default function OrderItemsList({ items }: { items: Item[] }) {
+export default function OrderItemsList({ items, owner }: { items: Item[], owner?: string }) {
   return (
     <View style={styles.container}>
-      <Text style={typography.h3}>Services</Text>
+      <Text style={[typography.label]}>{owner}</Text>
 
       {items.map((item, i) => (
         <View key={i} style={styles.row}>

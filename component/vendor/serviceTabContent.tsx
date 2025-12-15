@@ -5,28 +5,53 @@ import { typography } from '@/theme/typography';
 import { router } from 'expo-router';
 import { Add, TickSquare } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import PageTitle from '../shared/PageTitle';
 import { useBookingStore } from '@/store/bookingStore';
+import ConfirmModal from '../modalsData/confirmationModal';
 
 const ServiceTabContent = ({vendor}) => {
   const [selectedCategory, setSelectedCategory] = useState(vendor.services[0].categoryName);
   const [showAll, setShowAll] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const {bookingType, toggleService, bookers, singleServices} = useBookingStore()
+  const {bookingType, toggleService, bookers, singleServices, activeBookerId} = useBookingStore()
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [pendingService, setPendingService] = useState<any>(null);
 
-  const handleBook = (service: string) => {
+  const handleBook = (service: any) => {
     if(bookingType === null) {
       router.push({
         params: { vendor: JSON.stringify(vendor) },
         pathname: '/(others)/selectProfessional'
       })
-    } else {
+    } else if (bookingType === 'single') {
       toggleService(vendor?.id, service);
+    } else {
+      if (booker?.vendorId && booker.vendorId !== vendor?.id) {
+        // Show custom modal instead of alert
+        setPendingService(service);
+        setConfirmVisible(true);
+      } else {
+        toggleService(vendor?.id, service);
+      }
     }
   };
 
-  const cart = bookers?.services || singleServices
+  // Modal handlers
+const handleConfirm = () => {
+  if (pendingService) toggleService(vendor?.id, pendingService);
+  setPendingService(null);
+  setConfirmVisible(false);
+};
+
+const handleCancel = () => {
+  setPendingService(null);
+  setConfirmVisible(false);
+};
+
+  const booker = bookers?.find((b) => b.id === activeBookerId)
+
+  const cart = bookingType === 'single' ? singleServices : booker?.services
 
   const currentCategory = vendor.services.find((c) => c.categoryName === selectedCategory);
   const servicesToShow = currentCategory?.items.slice(0, showAll ? undefined : 5) || [];
@@ -73,10 +98,10 @@ const ServiceTabContent = ({vendor}) => {
 
             <Pressable onPress={() => handleBook(service)}>
                { 
-                cart.find((s) => s.serviceId === service.serviceId) ? (
-                  <TickSquare size={25} color={cart.find((s) => s.serviceId === service.serviceId) && colors.primary} variant='Bulk' />
+                cart?.find((s) => s.serviceId === service.serviceId) ? (
+                  <TickSquare size={25} color={cart?.find((s) => s.serviceId === service.serviceId) && colors.primary} variant='Bulk' />
                 ) : (
-                  <Add size={25} color={cart.find((s) => s.serviceId !== service.serviceId) ? colors.gray400 : colors.gray400} variant='Bulk'  />
+                  <Add size={25} color={cart?.find((s) => s.serviceId !== service.serviceId) ? colors.gray400 : colors.gray400} variant='Bulk'  />
                 )
               }
             </Pressable>
@@ -97,6 +122,13 @@ const ServiceTabContent = ({vendor}) => {
           </Pressable>
         )}
       </View>
+        <ConfirmModal
+            visible={confirmVisible}
+            title="Warning"
+            message="This booker already has services from another vendor. Adding a service from this vendor will clear their current selections. Do you want to proceed?"
+            onCancel={handleCancel}
+            onConfirm={handleConfirm}
+          />
     </View>
   );
 };

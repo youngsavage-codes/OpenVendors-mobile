@@ -4,21 +4,67 @@ import { typography } from '@/theme/typography';
 import { router } from 'expo-router';
 import { Add, TickSquare } from 'iconsax-react-nativejs';
 import React, { useRef, useState } from 'react';
-import { Animated, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Animated, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CartSummary from '../shared/CartSummary';
 import PageTitle from '../shared/PageTitle';
 import AuthHeader from '../shared/auth/authHeader';
 import { useBookingStore } from '@/store/bookingStore';
+import ActiveBooker from '../shared/activeBooker';
+import ConfirmModal from '../modalsData/confirmationModal';
 
 const Services = ({vendor}) => {
       const [activeCategory, setActiveCategory] = useState(vendor?.services[0].categoryName);
       const sectionPositions = useRef<{ [key: string]: number }>({});
       const scrollRef = useRef<ScrollView>(null);
-      const {singleServices, bookers, toggleService, totalPriceSingle, bookingType, totalDurationSingle} = useBookingStore()
+      const {
+        singleServices, 
+        bookers, 
+        toggleService, 
+        totalPriceSingle, 
+        bookingType, 
+        totalDurationSingle, 
+        activeBookerId, 
+        totalDurationBooker, 
+        totalPriceBooker
+      } = useBookingStore()
+      const [confirmVisible, setConfirmVisible] = useState(false);
+      const [pendingService, setPendingService] = useState<any>(null);
 
-      const cart = singleServices || bookers?.services
-    
+      const booker = bookers?.find((b) => b.id === activeBookerId)
+
+      const cart = bookingType === 'single' ? singleServices : booker?.services
+
+      const total = bookingType === 'single' ? totalPriceSingle() : totalPriceBooker(activeBookerId)
+      const duration = bookingType === 'single' ? totalDurationSingle() : totalDurationBooker(activeBookerId);
+
+    const addService = (service: any) => {
+      if (bookingType === 'single') {
+        toggleService(vendor?.id, service);
+      } else {
+        if (booker?.vendorId && booker.vendorId !== vendor?.id) {
+          // Show custom modal instead of alert
+          setPendingService(service);
+          setConfirmVisible(true);
+        } else {
+          toggleService(vendor?.id, service);
+        }
+      }
+    };
+
+// Modal handlers
+const handleConfirm = () => {
+  if (pendingService) toggleService(vendor?.id, pendingService);
+  setPendingService(null);
+  setConfirmVisible(false);
+};
+
+const handleCancel = () => {
+  setPendingService(null);
+  setConfirmVisible(false);
+};
+
+
     
       // === Animated Underline Position ===
       const indicatorX = useRef(new Animated.Value(0)).current;
@@ -71,41 +117,47 @@ const Services = ({vendor}) => {
         <SafeAreaView style={{ flex: 1 }}>
             <AuthHeader title='Services' showBack />
 
+            {
+              bookingType === 'group' && (
+                <ActiveBooker vendorId={vendor?.id} />
+              )
+            }
+
             {/* Sticky Category Tabs */}
             <View style={styles.categoryContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 5 }}>
-                <View style={{ flexDirection: 'row', position: 'relative' }}>
-                {vendor?.services.map((cat, index) => (
-                  <Pressable
-                    key={index}
-                    onPress={() => scrollToCategory(cat.category)}
-                    onLayout={(e) => onLayoutTab(cat.category, e)}
-                    style={[
-                            styles.categoryTab,
-                            activeCategory === cat.categoryName && styles.activeCategoryTab, // add active style
-                        ]}
-                    >
-                        <Text
-                            style={[
-                            typography.caption,
-                            activeCategory === cat.categoryName && styles.activeTabText,
-                            ]}
-                        >
-                            {cat.categoryName}
-                        </Text>
-                    </Pressable>
-                ))}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 5 }}>
+                  <View style={{ flexDirection: 'row', position: 'relative' }}>
+                  {vendor?.services.map((cat, index) => (
+                    <Pressable
+                      key={index}
+                      onPress={() => scrollToCategory(cat.category)}
+                      onLayout={(e) => onLayoutTab(cat.category, e)}
+                      style={[
+                              styles.categoryTab,
+                              activeCategory === cat.categoryName && styles.activeCategoryTab, // add active style
+                          ]}
+                      >
+                          <Text
+                              style={[
+                              typography.caption,
+                              activeCategory === cat.categoryName && styles.activeTabText,
+                              ]}
+                          >
+                              {cat.categoryName}
+                          </Text>
+                      </Pressable>
+                  ))}
 
-                </View>
-            </ScrollView>
+                  </View>
+              </ScrollView>
             </View>
 
             {/* Scrollable Services */}
             <ScrollView
-            ref={scrollRef}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            showsVerticalScrollIndicator={false}
+              ref={scrollRef}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              showsVerticalScrollIndicator={false}
             >
             {vendor?.services?.map((section) => (
               <View
@@ -125,16 +177,16 @@ const Services = ({vendor}) => {
                         <Text style={[typography.caption, styles.price]}>{item.price}</Text>
                     </View>
                     <Pressable 
-                        onPress={() => toggleService(vendor?.id, item)} 
+                        onPress={() => addService(item)} 
                         style={{
                         borderRadius: 8,
                         }}
                     >
                         { 
-                          cart.find((s) => s.serviceId === item.serviceId) ? (
-                              <TickSquare size={25} color={cart.find((s) => s.serviceId === item.serviceId) && colors.primary} variant='Bulk' />
+                          cart?.find((s) => s.serviceId === item.serviceId) ? (
+                              <TickSquare size={25} color={cart?.find((s) => s.serviceId === item.serviceId) && colors.primary} variant='Bulk' />
                           ) : (
-                              <Add size={25} color={cart.find((s) => s.serviceId !== item.serviceId) ? colors.gray400 : colors.gray400} variant='Bulk'  />
+                              <Add size={25} color={cart?.find((s) => s.serviceId !== item.serviceId) ? colors.gray400 : colors.gray400} variant='Bulk'  />
                           )
                         }
                     </Pressable>
@@ -145,11 +197,11 @@ const Services = ({vendor}) => {
             ))}
         </ScrollView>
         {
-                cart.length > 0 && (
+                cart?.length! > 0 && (
                     <CartSummary
-                        totalPrice={bookingType === 'single' && totalPriceSingle() as any}
-                        totalDuration={bookingType === 'single' && totalDurationSingle() as any}
-                        totalItems={cart.length}
+                        totalPrice={total}
+                        totalDuration={duration}
+                        totalItems={cart?.length!}
                         onContinue={() => router.push({
                           pathname: '/(others)/setBookingDetails',
                           params: {
@@ -159,7 +211,15 @@ const Services = ({vendor}) => {
                     />
                 )
         }
+          <ConfirmModal
+            visible={confirmVisible}
+            title="Warning"
+            message="This booker already has services from another vendor. Adding a service from this vendor will clear their current selections. Do you want to proceed?"
+            onCancel={handleCancel}
+            onConfirm={handleConfirm}
+          />
         </SafeAreaView>
+        
     </View>
   )
 }

@@ -25,7 +25,7 @@ export default function BookingDateTime({ date, time }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
+    marginTop: 10,
   },
   row: {
     flexDirection: "row",

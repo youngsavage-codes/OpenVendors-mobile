@@ -15,7 +15,7 @@ interface Booker {
   services: Service[];
   date?: string;
   time?: string;
-  isFirstVisit?: boolean; // <-- track first visit per booker
+  isFirstVisit?: boolean;
 }
 
 type BookingType = 'single' | 'group' | null;
@@ -28,7 +28,7 @@ interface BookingStore {
   singleServices: Service[];
   singleDate?: string;
   singleTime?: string;
-  isFirstVisit: boolean; // <-- track first visit for single booking
+  isFirstVisit: boolean;
 
   // Group booking state
   bookers: Booker[];
@@ -55,14 +55,18 @@ interface BookingStore {
 
   // Group booking helpers
   setActiveBooker: (bookerId: number) => void;
-  addBooker: (booker: Booker) => void;
+  addBooker: (name?: string) => void;
   removeBooker: (bookerId: number) => void;
   clearActiveBookerServices: () => void;
   totalPriceBooker: (bookerId: number) => number;
   totalDurationBooker: (bookerId: number) => number;
+
+  // All bookers total
+  totalPriceAllBookers: () => number;
+  totalDurationAllBookers: () => number;
 }
 
-// Helper to parse duration
+// Helper to parse duration string into minutes
 const parseDuration = (duration: string) => {
   let minutes = 0;
   const hourMatch = duration.match(/(\d+)\s*hour/i);
@@ -74,6 +78,9 @@ const parseDuration = (duration: string) => {
   return minutes;
 };
 
+// Helper to generate guest names
+const generateGuestName = (index: number) => `Guest ${index}`;
+
 export const useBookingStore = create<BookingStore>((set, get) => ({
   bookingType: null,
 
@@ -82,17 +89,29 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
   singleServices: [],
   singleDate: undefined,
   singleTime: undefined,
-  isFirstVisit: true, // <-- default true
+  isFirstVisit: true,
 
   // Group booking
   bookers: [],
   activeBookerId: undefined,
 
-  setBookingType: (type) => set({ bookingType: type }),
+  setBookingType: (type) => {
+    set({ bookingType: type });
 
-  // Toggle service
+    if (type === 'group' && get().bookers.length === 0) {
+      const firstBooker: Booker = {
+        id: 1,
+        name: 'You',
+        services: [],
+        isFirstVisit: false,
+      };
+      set({ bookers: [firstBooker], activeBookerId: firstBooker.id });
+    }
+  },
+
   toggleService: (vendorId, service) => {
     const { bookingType } = get();
+
     if (bookingType === 'single') {
       const exists = get().singleServices.find((s) => s.serviceId === service.serviceId);
       if (exists) {
@@ -108,8 +127,20 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
         }
       }
     } else {
-      const { activeBookerId, bookers } = get();
-      if (!activeBookerId) return;
+      let { activeBookerId, bookers } = get();
+
+      if (!activeBookerId) {
+        const newBooker: Booker = {
+          id: bookers.length + 1,
+          name: generateGuestName(bookers.length),
+          services: [service],
+          vendorId,
+          isFirstVisit: false,
+        };
+        set({ bookers: [...bookers, newBooker], activeBookerId: newBooker.id });
+        return;
+      }
+
       const booker = bookers.find((b) => b.id === activeBookerId);
       if (!booker) return;
 
@@ -138,15 +169,19 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
     }
   },
 
-  // Single booking helpers
   clearSingleServices: () =>
-    set({ singleServices: [], singleVendorId: undefined, singleDate: undefined, singleTime: undefined, isFirstVisit: true }),
+    set({
+      singleServices: [],
+      singleVendorId: undefined,
+      singleDate: undefined,
+      singleTime: undefined,
+      isFirstVisit: true,
+    }),
   totalPriceSingle: () =>
     get().singleServices.reduce((sum, s) => sum + Number(s.price.replace(/[^0-9]/g, '')), 0),
   totalDurationSingle: () =>
     get().singleServices.reduce((sum, s) => sum + parseDuration(s.duration), 0),
 
-  // Date & Time setters
   setSingleDateTime: (date, time) => set({ singleDate: date, singleTime: time }),
   setActiveBookerDateTime: (date, time) => {
     const { activeBookerId, bookers } = get();
@@ -158,7 +193,6 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
     });
   },
 
-  // First visit setters
   setSingleFirstVisit: (first) => set({ isFirstVisit: first }),
   setBookerFirstVisit: (bookerId, first) => {
     const { bookers } = get();
@@ -169,14 +203,47 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
     });
   },
 
-  // Group booking helpers
   setActiveBooker: (bookerId) => set({ activeBookerId: bookerId }),
-  addBooker: (booker) => set((state) => ({ bookers: [...state.bookers, { ...booker, isFirstVisit: true }] })),
+
+  addBooker: (name?: string) =>
+    set((state) => {
+      const newId = state.bookers.length + 1;
+      const newBooker: Booker = {
+        id: newId,
+        name: name || generateGuestName(state.bookers.length),
+        services: [],
+        isFirstVisit: true,
+      };
+      return {
+        bookers: [...state.bookers, newBooker],
+        activeBookerId: newBooker.id,
+      };
+    }),
+
   removeBooker: (bookerId) =>
-    set((state) => ({
-      bookers: state.bookers.filter((b) => b.id !== bookerId),
-      activeBookerId: state.activeBookerId === bookerId ? undefined : state.activeBookerId,
-    })),
+    set((state) => {
+      const index = state.bookers.findIndex((b) => b.id === bookerId);
+      if (index === -1) return state;
+
+      const newBookers = state.bookers.filter((b) => b.id !== bookerId);
+
+      let newActiveBookerId = state.activeBookerId;
+      if (state.activeBookerId === bookerId) {
+        if (index > 0) {
+          newActiveBookerId = state.bookers[index - 1].id;
+        } else if (newBookers.length > 0) {
+          newActiveBookerId = newBookers[0].id;
+        } else {
+          newActiveBookerId = undefined;
+        }
+      }
+
+      return {
+        bookers: newBookers,
+        activeBookerId: newActiveBookerId,
+      };
+    }),
+
   clearActiveBookerServices: () => {
     const { activeBookerId, bookers } = get();
     if (!activeBookerId) return;
@@ -194,9 +261,28 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
     if (!booker) return 0;
     return booker.services.reduce((sum, s) => sum + Number(s.price.replace(/[^0-9]/g, '')), 0);
   },
+
   totalDurationBooker: (bookerId) => {
     const booker = get().bookers.find((b) => b.id === bookerId);
     if (!booker) return 0;
     return booker.services.reduce((sum, s) => sum + parseDuration(s.duration), 0);
+  },
+
+  totalPriceAllBookers: () => {
+    const { bookers } = get();
+    return bookers.reduce(
+      (sum, b) =>
+        sum + b.services.reduce((sSum, s) => sSum + Number(s.price.replace(/[^0-9]/g, '')), 0),
+      0
+    );
+  },
+
+  totalDurationAllBookers: () => {
+    const { bookers } = get();
+    return bookers.reduce(
+      (sum, b) =>
+        sum + b.services.reduce((sSum, s) => sSum + parseDuration(s.duration), 0),
+      0
+    );
   },
 }));
