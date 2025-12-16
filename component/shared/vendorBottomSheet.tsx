@@ -3,9 +3,10 @@ import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { typography } from '@/theme/typography';
 import { colors } from '@/theme/colors';
-import { Star1 } from 'iconsax-react-nativejs';
+import { ArrowDown2, Star1, TickCircle } from 'iconsax-react-nativejs';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { ScrollView } from 'react-native';
 
 interface VendorSheetProps {
   vendors: any[];
@@ -85,7 +86,7 @@ const VendorBottomSheet = ({ vendors, sheetRef }: VendorSheetProps) => {
       enablePanDownToClose={false}
       backgroundStyle={{ backgroundColor: colors.background }}
     >
-        <SafeAreaView>
+        <View style={{paddingVertical: 5}}>
             <BottomSheetFlatList
                 data={vendors}
                 keyExtractor={(item) => item.id.toString()}
@@ -97,7 +98,7 @@ const VendorBottomSheet = ({ vendors, sheetRef }: VendorSheetProps) => {
                 }}
                 showsVerticalScrollIndicator={false}
             />
-        </SafeAreaView>
+        </View>
     </BottomSheet>
   );
 };
@@ -106,21 +107,19 @@ export default VendorBottomSheet;
 
 
 const styles = StyleSheet.create({
-  contentContainer: {
-    paddingHorizontal: 16,
-  },
+  servicesContainer: { marginTop: 8, },
+
   vendorCard: {
     backgroundColor: colors.background,
     borderRadius: 12,
+    overflow: 'hidden', // ensure image and content stay within card
   },
   image: {
     width: '100%',
     height: 180,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
   },
   vendorInfo: {
-    paddingTop: 8,
+    padding: 12, // uniform padding
   },
   header: {
     flexDirection: 'row',
@@ -130,10 +129,6 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-  },
-  servicesContainer: {
-    marginTop: 8,
   },
   serviceCard: {
     flexDirection: 'row',
@@ -152,5 +147,7 @@ const styles = StyleSheet.create({
   serviceText: {
     fontSize: 12,
     marginTop: 2,
+    fontStyle: 'italic',
+    color: colors.gray400,
   },
 });

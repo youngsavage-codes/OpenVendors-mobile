@@ -1,19 +1,19 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { vendors } from '@/constant/data';
-import { HamburgerMenu, Menu, SearchNormal, Star1 } from 'iconsax-react-nativejs';
+import { HamburgerMenu,  SearchNormal, Star1 } from 'iconsax-react-nativejs';
 import { colors } from '@/theme/colors';
 import { typography } from '@/theme/typography';
 import VendorBottomSheet from '@/component/shared/vendorBottomSheet';
 import { ImageBackground } from 'react-native';
 import { router } from 'expo-router';
 import IconButton from '@/component/shared/IconButton';
+import { useFilterStore } from '@/store/filterStore';
 
 const USER_LOCATION = { latitude: 6.5244, longitude: 3.3792 };
-const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const getCircleBounds = (
   { latitude, longitude }: { latitude: number; longitude: number },
@@ -36,6 +36,7 @@ const Search = () => {
   const sheetRef = useRef<BottomSheet>(null);
 
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
+  const { categories } = useFilterStore();
 
   const zoomToLocation = (lat: number, lng: number) => {
     mapRef.current?.animateToRegion(
@@ -60,7 +61,7 @@ const Search = () => {
     <GestureHandlerRootView style={{ flex: 1 }}>
         {/* PAGE HEADER */}
         <View style={styles.pageHeader}>
-          <IconButton>
+          <IconButton onPress={() => router.push('/(others)/mapSearch')}>
             <SearchNormal />
           </IconButton>
 

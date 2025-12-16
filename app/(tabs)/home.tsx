@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TextInput,
   ScrollView,
+  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -25,11 +26,14 @@ import { colors } from "@/theme/colors";
 import { fontFamily, fontSize } from "@/theme/fonts";
 import { images } from "@/constant/images";
 import VendorCard from "@/component/home/VendorCard";
-import { cards, vendorData } from "@/constant/data";
+import { cards, CATEGORIES, vendorData } from "@/constant/data";
 import NearbyVendor from "@/component/home/nearbyVendor";
 import TopVendors from "@/component/home/topVendors";
 import CarouselSkeleton from "@/component/skeletons/CarouselSkeleton";
 import { typography } from "@/theme/typography";
+import CategoryCard from "@/component/shared/CategoryCard";
+import PageTitle from "@/component/shared/PageTitle";
+import CategoriesSection from "@/component/shared/categorySection";
 
 const Index = () => {
   const [scrollEnabled, setScrollEnabled] = useState(true);
@@ -43,6 +47,7 @@ const Index = () => {
 
     return () => clearTimeout(timer);
   }, []);
+
   return (
   <View style={styles.container}>
     <SafeAreaView>
@@ -95,11 +100,13 @@ const Index = () => {
             <Carousel data={cards} setScrollEnabled={setScrollEnabled} />
           )}
 
-       {/* TOP VENDORS HEADING */}
-        <TopVendors />
+          <CategoriesSection />
+
+          {/* TOP VENDORS HEADING */}
+          <TopVendors />
 
 
-        <NearbyVendor />
+          <NearbyVendor />
 
       </ScrollView>
     </SafeAreaView>
@@ -139,6 +146,11 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     borderWidth: 1,
     borderColor: colors.gray200,
+  },
+
+    columnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: 12, // spacing between rows
   },
 
   searchInput: {

@@ -1,3 +1,4 @@
+import { icons } from "./icons";
 import { images } from "./images";
 
   export const cards = [
@@ -564,4 +565,19 @@ export const vendors = [
       },
     ],
   },
+];
+
+export const CATEGORIES = [
+  { id: '1', title: 'Hair & Styling', image: icons.hairdryer },
+  { id: '2', title: 'Nail', image: icons.polish },
+  { id: '3', title: 'Eyebrows & eyelashes', image: icons.eyebrow },
+  { id: '4', title: 'Massage', image: icons.massage },
+  { id: '5', title: 'Barbing', image: icons.barber },
+  { id: '6', title: 'Hair Removal', image:icons.hairremoval },
+  { id: '7', title: 'Facials & skincare', image: icons.skincare },
+  { id: '8', title: 'Injectables & fillers', image: icons.injection },
+  { id: '10', title: 'Tattoo & piercing', image: icons.tattoo },
+  { id: '11', title: 'Makeup', image: icons.makeup },
+  { id: '12', title: 'Medical & dental', image: icons.medical },
+  { id: '13', title: 'Counselling & holistic', image: icons.counselling },
 ];

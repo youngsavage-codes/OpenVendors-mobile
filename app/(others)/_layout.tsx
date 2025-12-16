@@ -12,6 +12,7 @@ const _layout = () => {
     <Stack.Screen name='orderSummery' />
     <Stack.Screen name='joinWaitlist' />
     <Stack.Screen name='teamDetails' />
+    <Stack.Screen name='mapSearch' />
   </Stack>
 }
 
